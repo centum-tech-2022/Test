@@ -21,3 +21,34 @@ class TestView(TestCase):
         # 1.5 Blog, About Me라는 문구가 내비게이션 바에 있다.
         self.assertIn('Blog',navbar.text)
         self.assertIn('About Me',navbar.text)
+        
+        # 2.1 포스트가 하나도 없는가
+        self.assertEqual(Post.objects.count(), 0)
+        # 2.2 main area에 '아직 게시물이 없습니다' 라는 문구가 나타난다.
+        main_area = soup.find('div', id='main-area' )
+        self.assertIn('아직 게시물이 없습니다',main_area.text)
+        
+        # 3.1 포스트가 2개 있다면
+        post_001 = Post.objects.create(
+            title = '첫번째 포스트입니다.',
+            content = 'Hello World. We are the world.',
+        )
+        
+        post_002 = Post.objects.create(
+            title = '두번째 포스트입니다.',
+            content = '1등이 전부 아니잖아',
+        )
+        
+        self.assertEqual(Post.objects.count(), 2)
+        
+        # 3.2 포스트 목록 페이지를 새로고침했을때
+        response = self.client.get('/blog/')
+        soup = BeautifulSoup(response.content,'html.parser')
+        self.assertEqual(response.status_code, 200)
+        # 3.3 main area 에 포스트가 2개 존재한다
+        main_area = soup.find('div',id='main-area')
+        self.assertIn(post_001.title,main_area.text)
+        self.assertIn(post_002.title,main_area.text)
+        
+        # 3.4 '아직 게시물이 없습니다'라는 문구는 더 이상 나타나지 않는다.
+        self.assertNotIn('아직 게시물이 없습니다',main_area.text)
