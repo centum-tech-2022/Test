@@ -5,6 +5,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import  render, redirect
 from django.core.exceptions import PermissionDenied
 from django.utils.text import slugify
+from django.shortcuts import get_object_or_404
+from .forms import CommentForm
 
 class PostUpdate(LoginRequiredMixin, UpdateView):
     model = Post
@@ -106,6 +108,7 @@ class PostDetail(DetailView):
         context = super(PostDetail,self).get_context_data()
         context['categories'] = Category.objects.all()
         context['no_category_post_count'] = Post.objects.filter(category=None).count()
+        context['comment_form'] = CommentForm
         return context
     
 def category_page(request,slug):
@@ -145,7 +148,24 @@ def tag_page(request, slug):
     )
     
     
-    
+def new_comment(request, pk):
+    if request.user.is_authenticated:
+        post = get_object_or_404(Post, pk=pk)
+        
+        if request.method == 'POST':
+            comment_form = CommentForm(request.POST)
+            
+            if comment_form.is_valid():
+                comment =comment_form.save(commit=False)
+                comment.post = post
+                comment.author = request.user
+                comment.save()
+                return redirect(comment.get_absolute_url())
+        
+        else:
+            return redirect(post.get_absolute_url())
+    else:
+        raise PermissionDenied
     
     # template_name = 'blog/index.html'
 
